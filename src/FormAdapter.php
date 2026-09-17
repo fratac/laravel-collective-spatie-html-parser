@@ -22,11 +22,15 @@ class FormAdapter
         $files = array_key_exists('files', $options) ? $options['files'] : false;
         $url = array_key_exists('url', $options) ? $options['url'] : null;
 
-
+        // I parametri di routing vanno rimossi prima del merge finale, in modo che
+        // non vengano confusi con gli attributi HTML del tag <form>.
         unset($options['method'], $options['route'], $options['files'], $options['url']);
 
         $form = html();
 
+        // L'azione del form segue una priorità deterministica: route array, route string,
+        // url e infine fallback al metodo senza action. Questo mantiene il comportamento
+        // compatibile con le chiamate Laravel Collective e con gli attributi custom.
         if (is_array($route) && count($route)) {
             $action = array_shift($route);
             $form = $form->form($method, route($action, $route));
@@ -36,6 +40,7 @@ class FormAdapter
             if (is_array($url) && count($url) > 0) {
                 $url = array_shift($url);
             }
+            $url = asset($url);
             $form = $form->form($method, $url);
         } else {
             $form = $form->form($method);
@@ -77,6 +82,9 @@ class FormAdapter
         array $optionsAttributes = [],
         array $optgroupsAttributes = []
     ) {
+        // Laravel Collective richiede un trattamento speciale quando la select permette
+        // più valori contemporaneamente: in quel caso viene applicato il metodo multiple()
+        // prima del merge finale degli attributi del componente HTML.
         if (isset($selectAttributes['multiple']) || in_array('multiple', $selectAttributes)) {
             $element = html()->select($name, $list, $selected)->multiple();
         } else {
